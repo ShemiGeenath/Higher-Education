@@ -4,5 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [tailwindcss(),react()],
+  plugins: [tailwindcss(), react()],
+  optimizeDeps: {
+    exclude: ['qr-scanner'], // Exclude qr-scanner from dependency pre-bundling
+  },
 })

@@ -11,7 +11,7 @@ const Navbar = ({ toggleSidebar }) => {
         >
           <FiMenu className="h-6 w-6" />
         </button>
-        <h1 className="text-2xl font-bold text-green-700">EduManage</h1>
+<h1 className="text-2xl font-bold text-green-700">Siයානා</h1>
         <div className="flex items-center space-x-4">
           <div className="relative">
             <button className="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none">

@@ -10,6 +10,7 @@ import Navbar from "./components/Navbar";
 import AddStudent from "./Pages/AddStudent";
 import Teachers from "./Pages/Teachers";
 import Classes from "./Pages/Classes";
+import StudentManagement from "./Pages/StudentManagement ";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -26,6 +27,7 @@ function App() {
             <Route path="/AddStudent" element={<ProtectedRoute> <AddStudent /> </ProtectedRoute>} />
             <Route path="/Teachers" element={<ProtectedRoute> <Teachers /> </ProtectedRoute>} />
             <Route path="/Classes" element={<ProtectedRoute> <Classes /> </ProtectedRoute>} />
+            <Route path="/StudentManagement" element={<ProtectedRoute> <StudentManagement /> </ProtectedRoute>} />
            
         </Routes>
       </BrowserRouter>

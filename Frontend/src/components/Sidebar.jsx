@@ -54,7 +54,7 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
                 Add Student
               </Link>
               <Link 
-                to="/Student" 
+                to="/StudentManagement" 
                 className="flex items-center px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg"
                 onClick={closeSidebar}
               >

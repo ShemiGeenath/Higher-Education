@@ -19,8 +19,8 @@ const DashboardContent = () => {
   // Recent activities
   const recentActivities = [
     { id: 1, action: 'New student registered', time: '10 min ago', icon: <FiUserPlus className="h-5 w-5 text-green-600" /> },
-    { id: 2, action: 'Payment received from John Doe', time: '25 min ago', icon: <FiDollarSign className="h-5 w-5 text-blue-600" /> },
-    { id: 3, action: 'Teacher salary paid to Sarah', time: '1 hour ago', icon: <FiCreditCard className="h-5 w-5 text-purple-600" /> },
+    { id: 2, action: 'Payment received from Sunil', time: '25 min ago', icon: <FiDollarSign className="h-5 w-5 text-blue-600" /> },
+    { id: 3, action: 'Teacher salary paid to Charitha', time: '1 hour ago', icon: <FiCreditCard className="h-5 w-5 text-purple-600" /> },
     { id: 4, action: 'Attendance marked for Math 101', time: '2 hours ago', icon: <FiClipboard className="h-5 w-5 text-yellow-600" /> },
   ];
 
