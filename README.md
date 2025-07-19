@@ -21,6 +21,7 @@ A full-featured web application for managing operations in universities and coll
 ### 📋 Student List
 - View, edit, delete student data.
 - Search and filter student records.
+- Search Student by QR code and navigate to Payment part
 
 ### 👨‍🏫 Teachers
 - Add and manage teacher profiles.
