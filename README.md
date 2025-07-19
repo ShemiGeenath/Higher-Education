@@ -69,6 +69,18 @@ A full-featured web application for managing operations in universities and coll
 - **File Uploads:** Multer
 - **State Management:** useState, useEffect, Context API (if needed)
 
+## 📱 QR Code Features
+
+- Generate unique QR code per task
+- Download QR code as PNG
+- Scan QR codes using webcam to view the task
+
+### Libraries Used
+- `qrcode.react` – Generate QR codes
+- `html-to-image` – Convert QR div to downloadable PNG
+- `html5-qrcode` – Scan QR from camera input
+
+
 ---
 
 
