@@ -124,6 +124,124 @@ router.put('/:id', upload.single('profilePicture'), async (req, res) => {
   }
 });
 
+// Add these endpoints to your existing studentRoutes.js
+
+// @route   GET /api/students/:id
+// @desc    Get single student with enrolled classes
+// @access  Public
+router.get('/:id', async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id)
+      .populate({
+        path: 'enrolledClasses.class',
+        select: 'className subject fee teacher day time',
+        populate: {
+          path: 'teacher',
+          select: 'name'
+        }
+      });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    
+    res.status(200).json(student);
+  } catch (err) {
+    console.error('[❌ Error Fetching Student]', err);
+    res.status(500).json({ error: 'Failed to fetch student' });
+  }
+});
+
+// @route   POST /api/students/:id/enroll
+// @desc    Enroll student in a class
+// @access  Public
+router.post('/:id/enroll', async (req, res) => {
+  try {
+    const { classId } = req.body;
+    
+    // Verify class exists
+    const classData = await Class.findById(classId);
+    if (!classData) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    const student = await Student.findById(req.params.id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Check if already enrolled
+    const alreadyEnrolled = student.enrolledClasses && 
+      student.enrolledClasses.some(
+        ec => ec.class.toString() === classId && ec.active
+      );
+
+    if (alreadyEnrolled) {
+      return res.status(400).json({ error: 'Student already enrolled in this class' });
+    }
+
+    // Initialize enrolledClasses if it doesn't exist
+    if (!student.enrolledClasses) {
+      student.enrolledClasses = [];
+    }
+
+    student.enrolledClasses.push({ 
+      class: classId,
+      enrolledDate: new Date()
+    });
+    
+    await student.save();
+    
+    res.status(200).json({ 
+      message: 'Student enrolled successfully', 
+      student: await Student.findById(student._id).populate('enrolledClasses.class') 
+    });
+  } catch (err) {
+    console.error('[❌ Error Enrolling Student]', err);
+    res.status(500).json({ error: 'Failed to enroll student' });
+  }
+});
+
+// @route   POST /api/students/:id/unenroll
+// @desc    Unenroll student from a class
+// @access  Public
+router.post('/:id/unenroll', async (req, res) => {
+  try {
+    const { classId } = req.body;
+
+    const student = await Student.findById(req.params.id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    if (!student.enrolledClasses) {
+      return res.status(400).json({ error: 'Student is not enrolled in any classes' });
+    }
+
+    const enrollmentIndex = student.enrolledClasses.findIndex(
+      ec => ec.class.toString() === classId && ec.active !== false
+    );
+
+    if (enrollmentIndex === -1) {
+      return res.status(400).json({ error: 'Student is not enrolled in this class' });
+    }
+
+    // Mark as inactive rather than removing to preserve history
+    student.enrolledClasses[enrollmentIndex].active = false;
+    student.enrolledClasses[enrollmentIndex].unenrolledDate = new Date();
+    
+    await student.save();
+    
+    res.status(200).json({ 
+      message: 'Student unenrolled successfully', 
+      student: await Student.findById(student._id).populate('enrolledClasses.class') 
+    });
+  } catch (err) {
+    console.error('[❌ Error Unenrolling Student]', err);
+    res.status(500).json({ error: 'Failed to unenroll student' });
+  }
+});
+
 
 
 module.exports = router;

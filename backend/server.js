@@ -23,10 +23,15 @@ app.use('/uploads', express.static('uploads'));
 const teacherRoute = require('./routes/teacherRoute');
 const classRoutes = require('./routes/classRoutes');
 const studentRoutes = require('./routes/studentRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes');
+
 
 app.use('/api/teachers', teacherRoute);
 app.use('/api/classes', classRoutes);
 app.use('/api/students', studentRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 5000;

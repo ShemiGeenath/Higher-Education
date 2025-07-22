@@ -169,11 +169,11 @@ const StudentManagement = () => {
       const result = await QrScanner.scanImage(file, {
         returnDetailedScanResult: true,
       });
-      
+
       try {
         const decodedData = JSON.parse(result.data);
-        const foundStudent = students.find(s => s._id === decodedData.id);
-        
+        const foundStudent = students.find((s) => s._id === decodedData.id);
+
         if (foundStudent) {
           setSelectedStudent(foundStudent);
           message.success(`Found student: ${foundStudent.name}`);
@@ -197,11 +197,11 @@ const StudentManagement = () => {
       setCameraActive(true);
       qrScannerRef.current = new QrScanner(
         videoRef.current,
-        result => {
+        (result) => {
           try {
             const decodedData = JSON.parse(result.data);
-            const foundStudent = students.find(s => s._id === decodedData.id);
-            
+            const foundStudent = students.find((s) => s._id === decodedData.id);
+
             if (foundStudent) {
               setSelectedStudent(foundStudent);
               message.success(`Found student: ${foundStudent.name}`);
@@ -314,8 +314,9 @@ const StudentManagement = () => {
             type="dashed"
             onClick={() => navigate(`/payments/${record._id}`)}
             title="Go to Payments"
+            icon={<MoneyCollectOutlined />}
           >
-            <MoneyCollectOutlined />
+            Payments
           </Button>
         </Space>
       ),
@@ -328,8 +329,8 @@ const StudentManagement = () => {
         title="Student Management"
         extra={
           <Space>
-            <Button 
-              icon={<QrcodeOutlined />} 
+            <Button
+              icon={<QrcodeOutlined />}
               onClick={() => setQrSearchVisible(true)}
               title="Search by QR"
             />
@@ -340,7 +341,11 @@ const StudentManagement = () => {
               allowClear
               style={{ width: 250 }}
             />
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/AddStudent")}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate("/AddStudent")}
+            >
               Add Student
             </Button>
           </Space>
@@ -397,7 +402,9 @@ const StudentManagement = () => {
               <Form.Item
                 label="School Name"
                 name="schoolName"
-                rules={[{ required: true, message: "Please enter school name" }]}
+                rules={[
+                  { required: true, message: "Please enter school name" },
+                ]}
               >
                 <Input />
               </Form.Item>
@@ -442,7 +449,9 @@ const StudentManagement = () => {
               <Form.Item
                 label="Admission Date"
                 name="admissionDate"
-                rules={[{ required: true, message: "Please select admission date" }]}
+                rules={[
+                  { required: true, message: "Please select admission date" },
+                ]}
               >
                 <DatePicker style={{ width: "100%" }} />
               </Form.Item>
@@ -487,9 +496,9 @@ const StudentManagement = () => {
         title="Student QR Code"
         visible={qrModalVisible}
         footer={
-          <Button 
-            type="primary" 
-            icon={<DownloadOutlined />} 
+          <Button
+            type="primary"
+            icon={<DownloadOutlined />}
             onClick={downloadQRCode}
           >
             Download QR
@@ -505,7 +514,9 @@ const StudentManagement = () => {
               <p>NIC: {qrData.nic}</p>
               <Button
                 type="primary"
-                onClick={() => navigator.clipboard.writeText(JSON.stringify(qrData))}
+                onClick={() =>
+                  navigator.clipboard.writeText(JSON.stringify(qrData))
+                }
                 style={{ marginTop: 16 }}
               >
                 Copy Data
@@ -532,8 +543,8 @@ const StudentManagement = () => {
                 showUploadList={false}
                 fileList={fileList}
               >
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   loading={uploading}
                   icon={<QrcodeOutlined />}
                   style={{ marginRight: 16 }}
@@ -541,8 +552,8 @@ const StudentManagement = () => {
                   Upload QR Image
                 </Button>
               </Upload>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 icon={<CameraOutlined />}
                 onClick={startCamera}
               >
@@ -551,29 +562,38 @@ const StudentManagement = () => {
             </>
           ) : (
             <>
-              <div style={{ position: 'relative', margin: '0 auto', width: '100%', maxWidth: '500px' }}>
-                <video 
-                  ref={videoRef} 
-                  style={{ 
-                    width: '100%', 
-                    border: '2px solid #1890ff',
-                    borderRadius: '8px'
+              <div
+                style={{
+                  position: "relative",
+                  margin: "0 auto",
+                  width: "100%",
+                  maxWidth: "500px",
+                }}
+              >
+                <video
+                  ref={videoRef}
+                  style={{
+                    width: "100%",
+                    border: "2px solid #1890ff",
+                    borderRadius: "8px",
                   }}
                 />
-                <div style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                }}>
-                  <Button 
-                    danger 
-                    shape="circle" 
-                    icon={<DeleteOutlined />} 
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "10px",
+                    right: "10px",
+                  }}
+                >
+                  <Button
+                    danger
+                    shape="circle"
+                    icon={<DeleteOutlined />}
                     onClick={stopCamera}
                   />
                 </div>
               </div>
-              <p style={{ marginTop: 16, color: '#666' }}>
+              <p style={{ marginTop: 16, color: "#666" }}>
                 Point your camera at a student QR code to scan
               </p>
             </>
