@@ -9,10 +9,11 @@ A full-featured web application for managing operations in universities and coll
 ### 📊 Dashboard
 - Overview of total students, teachers, classes, and payments.
 - Visual stats and charts.
+- Add recdords 
 
 ### 🛠️ Management
 - Admin panel to configure system-wide settings.
-- Role-based access control.
+- Role-based access control(Only Starf) .
 
 ### ➕ Add Student
 - Register new students with personal, academic, and contact details.
