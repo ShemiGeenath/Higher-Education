@@ -30,10 +30,8 @@ function App() {
             <Route path="/Teachers" element={<ProtectedRoute> <Teachers /> </ProtectedRoute>} />
             <Route path="/Classes" element={<ProtectedRoute> <Classes /> </ProtectedRoute>} />
             <Route path="/StudentManagement" element={<ProtectedRoute> <StudentManagement /> </ProtectedRoute>} />
-            <Route path="/Payments" element={<ProtectedRoute> <Payments /> </ProtectedRoute>} />
-            <Route path="/AttendancePage" element={<ProtectedRoute> <AttendancePage /> </ProtectedRoute>} />
-              <Route path="/payments/:id" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
-              <Route path="/AttendancePage/:id" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
+              <Route path="/payments/:studentId" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+              <Route path="/AttendancePage/:studentId" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
 
            
         </Routes>

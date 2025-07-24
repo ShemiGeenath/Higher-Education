@@ -1,607 +1,391 @@
-import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import QRCode from "react-qr-code";
-import {
-  Table,
-  Button,
-  Modal,
-  Form,
-  Input,
-  Select,
-  DatePicker,
-  Space,
-  Popconfirm,
-  Tag,
-  Avatar,
-  message,
-  Card,
-  Row,
-  Col,
-  Upload,
-} from "antd";
-import {
-  SearchOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  UserOutlined,
-  PlusOutlined,
-  QrcodeOutlined,
-  ScheduleOutlined,
-  MoneyCollectOutlined,
-  DownloadOutlined,
-  CameraOutlined,
-} from "@ant-design/icons";
-import moment from "moment";
-import html2canvas from "html2canvas";
-import QrScanner from "qr-scanner";
+// src/pages/StudentManagement.jsx
+import React, { useEffect, useState, useMemo } from 'react';
+import axios from 'axios';
+import QRCode from 'react-qr-code';
+import { QRScanner } from '../components/QRScanner';
+import { useNavigate } from 'react-router-dom';
 
-const { Option } = Select;
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-const StudentManagement = () => {
+export default function StudentManagement() {
   const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [qrModalVisible, setQrModalVisible] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [qrData, setQrData] = useState(null);
-  const [searchText, setSearchText] = useState("");
-  const [qrSearchVisible, setQrSearchVisible] = useState(false);
-  const [fileList, setFileList] = useState([]);
-  const [uploading, setUploading] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
-  const qrRef = useRef(null);
-  const videoRef = useRef(null);
-  const qrScannerRef = useRef(null);
-  const [form] = Form.useForm();
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
+  const [query, setQuery]       = useState('');
+  const [selectedStudent, setSelectedStudent] = useState(null); // for details drawer
+  const [qrStudent, setQrStudent] = useState(null); // for QR modal
+  const [showScanner, setShowScanner] = useState(false);
   const navigate = useNavigate();
-
-  // Fetch students from backend
-  const fetchStudents = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get("http://localhost:5000/api/students");
-      setStudents(res.data);
-    } catch (error) {
-      message.error("Failed to fetch students.");
-    }
-    setLoading(false);
-  };
 
   useEffect(() => {
     fetchStudents();
-    return () => {
-      if (qrScannerRef.current) {
-        qrScannerRef.current.stop();
-        qrScannerRef.current = null;
-      }
-    };
   }, []);
 
-  // Filter students based on search text
-  const filteredStudents = students.filter((student) =>
-    Object.values(student).some((val) =>
-      val
-        ? val.toString().toLowerCase().includes(searchText.toLowerCase())
-        : false
-    )
-  );
-
-  // Show Add or Edit Modal
-  const openModal = (student = null) => {
-    setSelectedStudent(student);
-    if (student) {
-      form.setFieldsValue({
-        ...student,
-        admissionDate: moment(student.admissionDate),
-      });
-    } else {
-      form.resetFields();
-    }
-    setModalVisible(true);
-  };
-
-  // Handle Add/Edit form submit
-  const onFinish = async (values) => {
+  async function fetchStudents() {
     try {
-      const studentData = {
-        ...values,
-        admissionDate: values.admissionDate.toISOString(),
-      };
-
-      if (selectedStudent) {
-        // Edit existing student
-        await axios.put(
-          `http://localhost:5000/api/students/${selectedStudent._id}`,
-          studentData
-        );
-        message.success("Student updated successfully");
-      } else {
-        // Add new student
-        await axios.post("http://localhost:5000/api/students", studentData);
-        message.success("Student added successfully");
-      }
-
-      fetchStudents();
-      setModalVisible(false);
-    } catch (error) {
-      message.error("Failed to save student");
+      setLoading(true);
+      const { data } = await axios.get(`${API}/students`);
+      setStudents(data || []);
+    } catch (e) {
+      console.error(e);
+      setError(e?.response?.data?.error || 'Failed to fetch students');
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
-  // Delete student
-  const deleteStudent = async (id) => {
+  // Optional: search client-side (NIC, name, email, etc)
+  const filtered = useMemo(() => {
+    if (!query.trim()) return students;
+    const q = query.toLowerCase();
+    return students.filter(s =>
+      [s.name, s.nic, s.email, s.schoolName, s.stream, s.contact]
+        .filter(Boolean)
+        .some(v => v.toLowerCase().includes(q))
+    );
+  }, [students, query]);
+
+  // When we scan a QR, we expect to get either:
+  // - just the studentId string, or
+  // - a JSON with { studentId: '...', ... }
+  async function handleScanResult(text) {
     try {
-      await axios.delete(`http://localhost:5000/api/students/${id}`);
-      message.success("Student deleted");
-      fetchStudents();
-    } catch (error) {
-      message.error("Failed to delete student");
-    }
-  };
-
-  // Show QR Modal
-  const showQrModal = (student) => {
-    setQrData({
-      id: student._id,
-      name: student.name,
-      nic: student.nic,
-    });
-    setQrModalVisible(true);
-  };
-
-  // Download QR Code
-  const downloadQRCode = () => {
-    if (qrRef.current) {
-      html2canvas(qrRef.current).then((canvas) => {
-        const link = document.createElement("a");
-        link.download = `${qrData.name}_QR.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      });
-    }
-  };
-
-  // Handle QR Search Upload
-  const handleQrSearch = async (file) => {
-    setUploading(true);
-    try {
-      const result = await QrScanner.scanImage(file, {
-        returnDetailedScanResult: true,
-      });
-
+      let studentId = text;
       try {
-        const decodedData = JSON.parse(result.data);
-        const foundStudent = students.find((s) => s._id === decodedData.id);
+        const parsed = JSON.parse(text);
+        if (parsed.studentId) studentId = parsed.studentId;
+      } catch (_) { /* it's fine if it's not JSON */ }
 
-        if (foundStudent) {
-          setSelectedStudent(foundStudent);
-          message.success(`Found student: ${foundStudent.name}`);
-          setQrSearchVisible(false);
-        } else {
-          message.warning("No matching student found");
-        }
-      } catch (e) {
-        message.error("Invalid QR code format");
-      }
-    } catch (error) {
-      message.error("Failed to scan QR code");
+      // If you added the /lookup route you could call: /students/lookup?q=<text>
+      const { data } = await axios.get(`${API}/students/${studentId}`);
+      setSelectedStudent(data);
+      setShowScanner(false);
+    } catch (e) {
+      console.error(e);
+      alert('No student found for scanned QR');
     }
-    setUploading(false);
-    return false; // Prevent default upload behavior
-  };
-
-  // Start camera for QR scanning
-  const startCamera = async () => {
-    try {
-      setCameraActive(true);
-      qrScannerRef.current = new QrScanner(
-        videoRef.current,
-        (result) => {
-          try {
-            const decodedData = JSON.parse(result.data);
-            const foundStudent = students.find((s) => s._id === decodedData.id);
-
-            if (foundStudent) {
-              setSelectedStudent(foundStudent);
-              message.success(`Found student: ${foundStudent.name}`);
-              stopCamera();
-              setQrSearchVisible(false);
-            } else {
-              message.warning("No matching student found");
-            }
-          } catch (e) {
-            message.error("Invalid QR code format");
-          }
-        },
-        {
-          highlightScanRegion: true,
-          highlightCodeOutline: true,
-        }
-      );
-      await qrScannerRef.current.start();
-    } catch (error) {
-      message.error("Failed to access camera");
-      console.error(error);
-      setCameraActive(false);
-    }
-  };
-
-  // Stop camera
-  const stopCamera = () => {
-    if (qrScannerRef.current) {
-      qrScannerRef.current.stop();
-      qrScannerRef.current = null;
-    }
-    setCameraActive(false);
-  };
-
-  // Clean up camera when modal closes
-  const handleQrSearchModalClose = () => {
-    stopCamera();
-    setQrSearchVisible(false);
-  };
-
-  // Table columns
-  const columns = [
-    {
-      title: "Profile",
-      dataIndex: "profilePicture",
-      render: (pic) =>
-        pic ? (
-          <Avatar src={`/uploads/${pic}`} size="large" />
-        ) : (
-          <Avatar icon={<UserOutlined />} size="large" />
-        ),
-    },
-    {
-      title: "Name",
-      dataIndex: "name",
-      sorter: (a, b) => a.name.localeCompare(b.name),
-    },
-    {
-      title: "NIC",
-      dataIndex: "nic",
-    },
-    {
-      title: "Stream",
-      dataIndex: "stream",
-      render: (stream) => {
-        let color = "purple";
-        if (stream === "Physical Science") color = "blue";
-        else if (stream === "Biological Science") color = "green";
-        else if (stream === "Commerce") color = "orange";
-        return <Tag color={color}>{stream}</Tag>;
-      },
-    },
-    {
-      title: "Contact",
-      dataIndex: "contact",
-    },
-    {
-      title: "Admission Date",
-      dataIndex: "admissionDate",
-      render: (date) => moment(date).format("YYYY-MM-DD"),
-      sorter: (a, b) =>
-        moment(a.admissionDate).unix() - moment(b.admissionDate).unix(),
-    },
-    {
-      title: "Actions",
-      render: (_, record) => (
-        <Space>
-          <Button
-            icon={<QrcodeOutlined />}
-            onClick={() => showQrModal(record)}
-          />
-          <Button icon={<EditOutlined />} onClick={() => openModal(record)} />
-          <Popconfirm
-            title="Are you sure to delete?"
-            onConfirm={() => deleteStudent(record._id)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-          <Button
-            type="dashed"
-            onClick={() => navigate(`/AttendanceSystem/${record._id}`)}
-            style={{ marginLeft: 8 }}
-            title="Go to Attendance"
-          >
-            <ScheduleOutlined />
-          </Button>
-          <Button
-            type="dashed"
-            onClick={() => navigate(`/payments/${record._id}`)}
-            title="Go to Payments"
-            icon={<MoneyCollectOutlined />}
-          >
-            Payments
-          </Button>
-        </Space>
-      ),
-    },
-  ];
+  }
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card
-        title="Student Management"
-        extra={
-          <Space>
-            <Button
-              icon={<QrcodeOutlined />}
-              onClick={() => setQrSearchVisible(true)}
-              title="Search by QR"
-            />
-            <Input
-              placeholder="Search students..."
-              prefix={<SearchOutlined />}
-              onChange={(e) => setSearchText(e.target.value)}
-              allowClear
-              style={{ width: 250 }}
-            />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => navigate("/AddStudent")}
-            >
-              Add Student
-            </Button>
-          </Space>
-        }
-      >
-        <Table
-          dataSource={filteredStudents}
-          columns={columns}
-          rowKey={(record) => record._id}
-          loading={loading}
-          scroll={{ x: true }}
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h1 className="text-3xl font-bold">Student Management</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => fetchStudents()}
+            className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200 text-sm"
+          >
+            Refresh
+          </button>
+          <button
+          onClick={() => setShowScanner(true)}
+          className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-sm"
+          >
+            Scan QR to Find Student
+          </button>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search by name, NIC, email, stream..."
+          className="w-full sm:w-96 border rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
         />
-      </Card>
+      </div>
 
-      {/* Add/Edit Student Modal */}
-      <Modal
-        title={selectedStudent ? "Edit Student" : "Add New Student"}
-        open={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        onOk={() => form.submit()}
-        width={700}
-        destroyOnHidden
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={onFinish}
-          initialValues={{ stream: "Physical Science" }}
-        >
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Full Name"
-                name="name"
-                rules={[{ required: true, message: "Please enter name" }]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label="NIC Number"
-                name="nic"
-                rules={[{ required: true, message: "Please enter NIC" }]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="School Name"
-                name="schoolName"
-                rules={[
-                  { required: true, message: "Please enter school name" },
-                ]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label="Email"
-                name="email"
-                rules={[
-                  { required: true, message: "Please enter email" },
-                  { type: "email", message: "Invalid email" },
-                ]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                label="Age"
-                name="age"
-                rules={[{ required: true, message: "Please enter age" }]}
-              >
-                <Input type="number" />
-              </Form.Item>
-            </Col>
-
-            <Col span={8}>
-              <Form.Item
-                label="Contact"
-                name="contact"
-                rules={[{ required: true, message: "Please enter contact" }]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-
-            <Col span={8}>
-              <Form.Item
-                label="Admission Date"
-                name="admissionDate"
-                rules={[
-                  { required: true, message: "Please select admission date" },
-                ]}
-              >
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item label="Address" name="address">
-            <Input.TextArea rows={2} />
-          </Form.Item>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item label="Guardian Name" name="guardianName">
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Guardian Contact" name="guardianContact">
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item
-            label="Stream"
-            name="stream"
-            rules={[{ required: true, message: "Please select stream" }]}
-          >
-            <Select>
-              <Option value="Physical Science">Physical Science</Option>
-              <Option value="Biological Science">Biological Science</Option>
-              <Option value="Commerce">Commerce</Option>
-              <Option value="Arts">Arts</Option>
-              <Option value="Technology">Technology</Option>
-            </Select>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* QR Code Modal */}
-      <Modal
-        title="Student QR Code"
-        open={qrModalVisible}
-        footer={
-          <Button
-            type="primary"
-            icon={<DownloadOutlined />}
-            onClick={downloadQRCode}
-          >
-            Download QR
-          </Button>
-        }
-        onCancel={() => setQrModalVisible(false)}
-      >
-        <div style={{ textAlign: "center", padding: 20 }}>
-          {qrData && (
-            <div ref={qrRef}>
-              <QRCode value={JSON.stringify(qrData)} size={200} level="H" />
-              <h3 style={{ marginTop: 16 }}>{qrData.name}</h3>
-              <p>NIC: {qrData.nic}</p>
-              <Button
-                type="primary"
-                onClick={() =>
-                  navigator.clipboard.writeText(JSON.stringify(qrData))
-                }
-                style={{ marginTop: 16 }}
-              >
-                Copy Data
-              </Button>
-            </div>
-          )}
+      {/* Error / Loading */}
+      {error && (
+        <div className="bg-red-50 text-red-600 border border-red-200 p-3 rounded mb-4">
+          {error}
         </div>
-      </Modal>
+      )}
+      {loading && <p>Loading...</p>}
 
-      {/* QR Search Modal */}
-      <Modal
-        title="Search Student by QR Code"
-        open={qrSearchVisible}
-        footer={null}
-        onCancel={handleQrSearchModalClose}
-        width={600}
-      >
-        <div style={{ textAlign: "center", padding: 20 }}>
-          {!cameraActive ? (
-            <>
-              <Upload
-                accept="image/*"
-                beforeUpload={handleQrSearch}
-                showUploadList={false}
-                fileList={fileList}
-              >
-                <Button
-                  type="primary"
-                  loading={uploading}
-                  icon={<QrcodeOutlined />}
-                  style={{ marginRight: 16 }}
-                >
-                  Upload QR Image
-                </Button>
-              </Upload>
-              <Button
-                type="primary"
-                icon={<CameraOutlined />}
-                onClick={startCamera}
-              >
-                Use Camera
-              </Button>
-            </>
-          ) : (
-            <>
-              <div
-                style={{
-                  position: "relative",
-                  margin: "0 auto",
-                  width: "100%",
-                  maxWidth: "500px",
-                }}
-              >
-                <video
-                  ref={videoRef}
-                  style={{
-                    width: "100%",
-                    border: "2px solid #1890ff",
-                    borderRadius: "8px",
-                  }}
-                />
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "10px",
-                    right: "10px",
-                  }}
-                >
-                  <Button
-                    danger
-                    shape="circle"
-                    icon={<DeleteOutlined />}
-                    onClick={stopCamera}
-                  />
-                </div>
-              </div>
-              <p style={{ marginTop: 16, color: "#666" }}>
-                Point your camera at a student QR code to scan
-              </p>
-            </>
-          )}
+      {/* Students Table */}
+      {!loading && filtered.length === 0 && (
+        <p className="text-gray-500">No students found.</p>
+      )}
+
+      {!loading && filtered.length > 0 && (
+        <div className="overflow-x-auto border rounded-lg shadow">
+          <table className="min-w-full divide-y divide-gray-200 text-sm">
+            <thead className="bg-gray-50">
+              <tr className="text-left">
+                <th className="px-4 py-3 font-medium">Profile</th>
+                <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">NIC</th>
+                <th className="px-4 py-3 font-medium">Email</th>
+                <th className="px-4 py-3 font-medium">Contact</th>
+                <th className="px-4 py-3 font-medium">Stream</th>
+                <th className="px-4 py-3 font-medium">Enrolled Classes</th>
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {filtered.map((s) => (
+                <tr key={s._id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2">
+                    {s.profilePicture ? (
+                      <img
+                        src={`${API.replace('/api', '')}/uploads/${s.profilePicture}`}
+                        alt={s.name}
+                        className="w-12 h-12 object-cover rounded-full border"
+                        onError={(e) => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}`
+                        }}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                        <span className="text-gray-500">{s.name?.[0]}</span>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-2 font-medium">{s.name}</td>
+                  <td className="px-4 py-2">{s.nic}</td>
+                  <td className="px-4 py-2">{s.email}</td>
+                  <td className="px-4 py-2">{s.contact}</td>
+                  <td className="px-4 py-2">{s.stream}</td>
+                  <td className="px-4 py-2">
+                    {(s.enrolledClasses || []).filter(ec => ec.active !== false).length} active
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    <div className="flex items-center gap-2 justify-end">
+                      <button
+                        onClick={() => setSelectedStudent(s)}
+                        className="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200"
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => setQrStudent(s)}
+                        className="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200"
+                      >
+                        QR
+                      </button>
+                      <button
+                        onClick={() => navigate(`/payments/${s._id}`)}
+                        className="px-2 py-1 text-xs rounded bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        Payment
+                      </button>
+                      <button
+                        onClick={() => navigate(`/attendance/${s._id}`)}
+                        className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Attendance
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </Modal>
+      )}
+
+      {/* Details Drawer */}
+      {selectedStudent && (
+        <DetailsDrawer
+          studentId={selectedStudent._id}
+          onClose={() => setSelectedStudent(null)}
+        />
+      )}
+
+      {/* QR Modal */}
+      {qrStudent && (
+        <QRModal
+          student={qrStudent}
+          onClose={() => setQrStudent(null)}
+        />
+      )}
+
+      {/* Scanner Modal */}
+      {showScanner && (
+        <ScannerModal
+          onClose={() => setShowScanner(false)}
+          onResult={handleScanResult}
+        />
+      )}
     </div>
   );
-};
+}
 
-export default StudentManagement;
+/* -------------------- Details Drawer -------------------- */
+
+function DetailsDrawer({ studentId, onClose }) {
+  const [loading, setLoading] = useState(true);
+  const [student, setStudent] = useState(null);
+  const [error, setError]     = useState('');
+
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const { data } = await axios.get(`${API}/students/${studentId}`);
+        setStudent(data);
+      } catch (e) {
+        console.error(e);
+        setError(e?.response?.data?.error || 'Failed to load student');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [studentId, API]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      <div className="flex-1 bg-black/40" onClick={onClose} />
+      <div className="w-full sm:w-[480px] bg-white h-full overflow-y-auto shadow-xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Student Details</h2>
+          <button
+            onClick={onClose}
+            className="rounded p-2 hover:bg-gray-100"
+          >✕</button>
+        </div>
+
+        {loading && <p>Loading...</p>}
+        {error && <p className='text-red-600'>{error}</p>}
+
+        {student && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              {student.profilePicture ? (
+                <img
+                  src={`${API.replace('/api', '')}/uploads/${student.profilePicture}`}
+                  alt={student.name}
+                  className="w-20 h-20 rounded-full object-cover border"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-2xl text-gray-500">{student.name?.[0]}</span>
+                </div>
+              )}
+              <div>
+                <h3 className="text-lg font-bold">{student.name}</h3>
+                <p className="text-gray-600 text-sm">{student.stream}</p>
+              </div>
+            </div>
+
+            <section>
+              <h4 className="font-semibold mb-2">Basic Info</h4>
+              <ul className="text-sm space-y-1">
+                <li><span className="font-medium">NIC:</span> {student.nic}</li>
+                <li><span className="font-medium">Email:</span> {student.email}</li>
+                <li><span className="font-medium">Contact:</span> {student.contact}</li>
+                <li><span className="font-medium">Age:</span> {student.age}</li>
+                <li><span className="font-medium">School:</span> {student.schoolName}</li>
+                <li><span className="font-medium">Address:</span> {student.address || '—'}</li>
+                <li><span className="font-medium">Admission Date:</span> {new Date(student.admissionDate).toLocaleDateString()}</li>
+              </ul>
+            </section>
+
+            <section>
+              <h4 className="font-semibold mb-2">Guardian Info</h4>
+              <ul className="text-sm space-y-1">
+                <li><span className="font-medium">Name:</span> {student.guardianName || '—'}</li>
+                <li><span className="font-medium">Contact:</span> {student.guardianContact || '—'}</li>
+              </ul>
+            </section>
+
+            <section>
+              <h4 className="font-semibold mb-2">Enrolled Classes</h4>
+              {(!student.enrolledClasses || student.enrolledClasses.length === 0) && (
+                <p className="text-sm text-gray-500">No classes enrolled.</p>
+              )}
+
+              <div className="space-y-3">
+                {(student.enrolledClasses || []).map((ec, idx) => (
+                  <div
+                    key={idx}
+                    className={`border rounded p-3 ${ec.active === false ? 'opacity-60' : ''}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium">{ec.class?.className || 'Class'}</div>
+                      <span className={`text-xs px-2 py-0.5 rounded ${ec.active === false ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                        {ec.active === false ? 'Inactive' : 'Active'}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      <div>Subject: {ec.class?.subject}</div>
+                      <div>Teacher: {ec.class?.teacher?.name}</div>
+                      <div>Fee: {ec.class?.fee}</div>
+                      <div>Day/Time: {ec.class?.day} {ec.class?.time}</div>
+                      <div>Enrolled: {new Date(ec.enrolledDate).toLocaleDateString()}</div>
+                      {ec.unenrolledDate && (
+                        <div>Unenrolled: {new Date(ec.unenrolledDate).toLocaleDateString()}</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------- QR Modal -------------------- */
+
+function QRModal({ student, onClose }) {
+  // What you encode in QR:
+  // 1) Just student._id
+  // 2) A JSON blob with more info for redundancy
+  const payload = JSON.stringify({
+    studentId: student._id,
+    name: student.name,
+    nic: student.nic
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-sm text-center">
+        <h3 className="text-lg font-semibold mb-4">{student.name}'s QR</h3>
+        <div className="bg-white p-4 inline-block rounded">
+          <QRCode value={payload} size={220} />
+        </div>
+        <p className="text-xs text-gray-500 mt-3 break-all">
+          {payload}
+        </p>
+        <div className="mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------- Scanner Modal -------------------- */
+
+function ScannerModal({ onResult, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-lg p-4 w-full max-w-md">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold">Scan Student QR</h3>
+          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100">✕</button>
+        </div>
+        <div className="rounded overflow-hidden">
+          <QRScanner onDecoded={(text) => onResult(text)} />
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          Allow camera permission to scan.
+        </p>
+      </div>
+    </div>
+  );
+}

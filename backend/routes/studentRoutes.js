@@ -248,6 +248,35 @@ router.post('/:id/unenroll', async (req, res) => {
   }
 });
 
+// @route   GET /api/students/lookup
+// @desc    Lookup by id OR nic OR email
+router.get('/lookup', async (req, res) => {
+  try {
+    const q = (req.query.q || '').trim();
+    if (!q) return res.status(400).json({ error: 'q required' });
+
+    let student = null;
+
+    // try ObjectId
+    if (q.match(/^[0-9a-fA-F]{24}$/)) {
+      student = await Student.findById(q);
+    }
+
+    if (!student) {
+      student = await Student.findOne({
+        $or: [{ nic: q }, { email: q }]
+      });
+    }
+
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    res.json(student);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lookup failed' });
+  }
+});
+
 
 
 module.exports = router;
