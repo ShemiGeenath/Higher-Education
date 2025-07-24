@@ -304,7 +304,7 @@ const StudentManagement = () => {
           </Popconfirm>
           <Button
             type="dashed"
-            onClick={() => navigate(`/attendance/${record._id}`)}
+            onClick={() => navigate(`/AttendanceSystem/${record._id}`)}
             style={{ marginLeft: 8 }}
             title="Go to Attendance"
           >
@@ -363,11 +363,11 @@ const StudentManagement = () => {
       {/* Add/Edit Student Modal */}
       <Modal
         title={selectedStudent ? "Edit Student" : "Add New Student"}
-        visible={modalVisible}
+        open={modalVisible}
         onCancel={() => setModalVisible(false)}
         onOk={() => form.submit()}
         width={700}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form
           form={form}
@@ -494,7 +494,7 @@ const StudentManagement = () => {
       {/* QR Code Modal */}
       <Modal
         title="Student QR Code"
-        visible={qrModalVisible}
+        open={qrModalVisible}
         footer={
           <Button
             type="primary"
@@ -529,7 +529,7 @@ const StudentManagement = () => {
       {/* QR Search Modal */}
       <Modal
         title="Search Student by QR Code"
-        visible={qrSearchVisible}
+        open={qrSearchVisible}
         footer={null}
         onCancel={handleQrSearchModalClose}
         width={600}

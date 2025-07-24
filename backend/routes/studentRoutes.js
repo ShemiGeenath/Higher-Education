@@ -1,3 +1,5 @@
+// studentRoutes.js
+
 const express = require('express');
 const multer = require('multer');
 const Student = require('../models/studentModel');
@@ -20,6 +22,9 @@ const upload = multer({ storage });
 // @access  Public
 router.post('/', upload.single('profilePicture'), async (req, res) => {
   try {
+    console.log('Incoming Data:', req.body);
+    console.log('Uploaded File:', req.file);
+
     const {
       name,
       nic,
@@ -52,10 +57,11 @@ router.post('/', upload.single('profilePicture'), async (req, res) => {
     await newStudent.save();
     res.status(201).json({ message: 'Student added successfully' });
   } catch (err) {
-    console.error('[❌ Error Adding Student]', err);
-    res.status(500).json({ error: 'Failed to add student' });
+    console.error('[❌ Error Adding Student]', err.message);
+    res.status(500).json({ error: 'Failed to add student', details: err.message });
   }
 });
+
 
 router.get('/', async (req, res) => {
   try {

@@ -12,6 +12,7 @@ import Teachers from "./Pages/Teachers";
 import Classes from "./Pages/Classes";
 import StudentManagement from "./Pages/StudentManagement ";
 import Payments from "./Pages/Payments";
+import AttendancePage from "./Pages/AttendancePage";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -30,7 +31,9 @@ function App() {
             <Route path="/Classes" element={<ProtectedRoute> <Classes /> </ProtectedRoute>} />
             <Route path="/StudentManagement" element={<ProtectedRoute> <StudentManagement /> </ProtectedRoute>} />
             <Route path="/Payments" element={<ProtectedRoute> <Payments /> </ProtectedRoute>} />
+            <Route path="/AttendancePage" element={<ProtectedRoute> <AttendancePage /> </ProtectedRoute>} />
               <Route path="/payments/:id" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+              <Route path="/AttendancePage/:id" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
 
            
         </Routes>

@@ -1,8 +1,12 @@
+// paymentRoutes.js
+
 const express = require('express');
 const router = express.Router();
 const Payment = require('../models/paymentModel');
 const Student = require('../models/studentModel');
 const Class = require('../models/classModel');
+const mongoose = require('mongoose'); // add this at top of paymentRoutes.js
+
 
 // GET payments for a specific student
 router.get('/student/:studentId', async (req, res) => {

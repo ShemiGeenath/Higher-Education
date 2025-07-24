@@ -1,3 +1,5 @@
+// studentModel.js
+
 const mongoose = require('mongoose');
 
 const studentSchema = new mongoose.Schema({
@@ -12,7 +14,18 @@ const studentSchema = new mongoose.Schema({
   guardianContact: { type: String },
   admissionDate: { type: Date, default: Date.now },
   stream: { type: String, required: true },
-  profilePicture: { type: String } // stored as filename
+  profilePicture: { type: String }, // filename
+  enrolledClasses: [
+    {
+      class: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Class'
+      },
+      enrolledDate: { type: Date, default: Date.now },
+      unenrolledDate: { type: Date },
+      active: { type: Boolean, default: true }
+    }
+  ]
 });
 
 module.exports = mongoose.model('Student', studentSchema);
