@@ -1,3 +1,4 @@
+// backend/server.js
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
@@ -13,10 +14,10 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors()); // Enable CORS
-app.use(express.json()); // Parse incoming JSON requests
+app.use(cors());
+app.use(express.json());
 
-// Serve static files (e.g., uploaded images)
+// Serve static files
 app.use('/uploads', express.static('uploads'));
 
 // Routes
@@ -25,7 +26,6 @@ const classRoutes = require('./routes/classRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
-
 
 app.use('/api/teachers', teacherRoute);
 app.use('/api/classes', classRoutes);

@@ -66,7 +66,7 @@ export default function Payment() {
         studentId,
         classId: enrollClassId,
         month: enrollMonth,
-        amount: cls?.fee,
+        amount: cls?.fee || 0,
         method: enrollMethod,
         reference: enrollReference
       });
@@ -201,9 +201,6 @@ export default function Payment() {
   );
 }
 
-/**
- * Component for each class block with its own state
- */
 function ClassPaymentCard({ cls, ec, thisMonth, defaultAmount, onPay }) {
   const [payMonth, setPayMonth] = useState(thisMonth);
   const [payMethod, setPayMethod] = useState('cash');
@@ -237,11 +234,7 @@ function ClassPaymentCard({ cls, ec, thisMonth, defaultAmount, onPay }) {
           </p>
         </div>
 
-        <span
-          className={`text-xs font-medium px-2 py-1 rounded ${
-            ec.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-          }`}
-        >
+        <span className={`text-xs font-medium px-2 py-1 rounded ${ec.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
           {ec.active ? 'Active' : 'Inactive'}
         </span>
       </div>

@@ -1,6 +1,4 @@
-// paymentRoutes.js
-
-// routes/paymentRoutes.js
+// backend/routes/paymentRoutes.js
 const express = require('express');
 const dayjs = require('dayjs');
 const Payment = require('../models/paymentModel');
@@ -20,37 +18,32 @@ const monthString = (date = new Date()) => dayjs(date).format('YYYY-MM');
  * Body: { studentId, classId, month (YYYY-MM), amount?, method?, reference? }
  */
 router.post('/', async (req, res) => {
+  const { studentId, classId, month, amount, method, reference } = req.body;
+
+  // Basic validation
+  if (!studentId || !classId || !month || typeof amount !== 'number' || !method) {
+    return res.status(400).json({ error: 'Missing or invalid required fields' });
+  }
+
   try {
-    const { studentId, classId, month, amount, method, reference } = req.body;
-    if (!studentId || !classId || !month) {
-      return res.status(400).json({ error: 'studentId, classId and month are required' });
-    }
-
-    const student = await Student.findById(studentId);
-    if (!student) return res.status(404).json({ error: 'Student not found' });
-
-    const classDoc = await Class.findById(classId);
-    if (!classDoc) return res.status(404).json({ error: 'Class not found' });
-
-    // default to class fee if amount not provided
-    const finalAmount = amount ?? classDoc.fee;
-
-    const payment = await Payment.create({
+    const payment = new Payment({
       student: studentId,
       class: classId,
       month,
-      amount: finalAmount,
+      amount,
       method,
-      reference
+      reference: reference || '',
+      paidAt: new Date()
     });
 
-    res.status(201).json({ message: 'Payment recorded', payment });
-  } catch (err) {
-    if (err.code === 11000) {
+    await payment.save();
+    res.status(201).json(payment);
+  } catch (error) {
+    console.error('Payment save error:', error);
+    if (error.code === 11000) {
       return res.status(400).json({ error: 'Payment already exists for this month' });
     }
-    console.error(err);
-    res.status(500).json({ error: 'Failed to record payment' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -111,18 +104,7 @@ router.post('/enroll-and-pay', async (req, res) => {
 
 /**
  * GET /api/payments/student/:studentId
- * Returns:
- * {
- *   student: { ... },
- *   enrolled: [
- *     {
- *       class: {...},
- *       history: [ { _id, month, amount, method, paidAt } ],
- *       paidThisMonth: boolean
- *     }
- *   ],
- *   availableClasses: [ ...classesNotEnrolled ]
- * }
+ * Returns student payment data with enrollment and history.
  */
 router.get('/student/:studentId', async (req, res) => {
   try {
@@ -147,7 +129,7 @@ router.get('/student/:studentId', async (req, res) => {
       })
       .sort({ month: -1, createdAt: -1 });
 
-    // Map by classId for quick grouping
+    // Map payments by classId
     const byClass = {};
     payments.forEach(p => {
       const cid = p.class?._id?.toString() || p.class.toString();
@@ -176,7 +158,7 @@ router.get('/student/:studentId', async (req, res) => {
       };
     });
 
-    // available classes (not actively enrolled)
+    // Classes student is NOT enrolled in actively
     const allClasses = await Class.find().populate('teacher', 'name subject');
     const enrolledActiveIds = new Set(
       (student.enrolledClasses || [])
