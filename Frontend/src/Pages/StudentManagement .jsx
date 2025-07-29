@@ -174,7 +174,7 @@ export default function StudentManagement() {
                         Payment
                       </button>
                       <button
-                        onClick={() => navigate(`/attendance/${s._id}`)}
+                        onClick={() => navigate(`/AttendancePage/${s._id}`)}
                         className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         Attendance

@@ -1,3 +1,5 @@
+// attendanceRoutes.js
+
 const express = require('express');
 const router = express.Router();
 const Attendance = require('../models/attendanceModel');
@@ -118,5 +120,51 @@ router.get('/class/:classId/today', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch today\'s attendance' });
   }
 });
+// POST mark absentees for a class (students not present today)
+router.post('/class/:classId/mark-absentees', async (req, res) => {
+  try {
+    const classId = req.params.classId;
+    const markedBy = req.user?._id || null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const studentsInClass = await Student.find({
+      'enrolledClasses.class': classId,
+      'enrolledClasses.active': true
+    });
+
+    const alreadyMarked = await Attendance.find({
+      class: classId,
+      date: { $gte: today }
+    });
+
+    const markedStudentIds = alreadyMarked.map(a => a.student.toString());
+
+    const absentees = studentsInClass.filter(
+      s => !markedStudentIds.includes(s._id.toString())
+    );
+
+    const absentRecords = absentees.map(student => ({
+      student: student._id,
+      class: classId,
+      date: today,
+      status: 'absent',
+      markedBy,
+      notes: 'Auto-marked as absent'
+    }));
+
+    await Attendance.insertMany(absentRecords);
+
+    res.status(201).json({
+      message: `${absentees.length} students marked as absent`,
+      absentees
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to mark absentees' });
+  }
+});
+
 
 module.exports = router;
