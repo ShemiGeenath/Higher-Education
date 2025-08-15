@@ -1,4 +1,3 @@
-// src/pages/AttendancePage.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
@@ -21,7 +20,8 @@ export default function AttendancePage() {
     try {
       const res = await axios.get(`${API}/students/${studentId}`);
       setStudent(res.data);
-      setClasses(res.data.enrolledClasses.filter(c => c.active).map(c => c.class));
+      const activeClasses = res.data.enrolledClasses?.filter(c => c.active).map(c => c.class) || [];
+      setClasses(activeClasses);
     } catch (err) {
       toast.error('Failed to load student data');
     }
@@ -38,7 +38,7 @@ export default function AttendancePage() {
 
   const markAttendance = async (classId, status = 'present') => {
     try {
-      await axios.post(`${API}/attendance/scan`, {
+      const res = await axios.post(`${API}/attendance/scan`, {
         studentId,
         classId,
         status,
@@ -53,10 +53,10 @@ export default function AttendancePage() {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">Attendance for {student?.name}</h2>
+      <h2 className="text-xl font-bold mb-4">Attendance for {student?.name || 'Student'}</h2>
 
       <div className="grid md:grid-cols-2 gap-4 mb-6">
-        {classes.map((cls) => (
+        {classes.map(cls => (
           <div key={cls._id} className="p-4 rounded shadow bg-white">
             <h3 className="text-md font-semibold">{cls.className} ({cls.subject})</h3>
             <p className="text-sm text-gray-600">Day: {cls.day}, Time: {cls.time}</p>

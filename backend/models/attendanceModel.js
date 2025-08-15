@@ -1,5 +1,4 @@
 // attendanceModel.js
-
 const mongoose = require('mongoose');
 
 const attendanceSchema = new mongoose.Schema({
@@ -26,19 +25,13 @@ const attendanceSchema = new mongoose.Schema({
   markedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false // changed from true
   },
   notes: { type: String }
 }, { 
-  timestamps: true,
-  // Ensure one attendance record per student per class per day
-  index: { student: 1, class: 1, date: 1 }, 
+  timestamps: true
 });
 
-// Prevent duplicate attendance for same student/class/day
-attendanceSchema.index(
-  { student: 1, class: 1, date: 1 }, 
-  { unique: true }
-);
+attendanceSchema.index({ student: 1, class: 1, date: 1 }, { unique: true });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);
